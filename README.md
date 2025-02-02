@@ -147,7 +147,7 @@ const getUserById = async (id) => {
 
 ```
 > [!INFO]
->Recordar que el retorno de un async-await devuelve una promesa aúnque no se este retornando explicitamente ej: return > Promise.resolve() ; entonces lo que se retorne dentro del catch es como decir Promise.reject()
+> Recordar que el retorno de un async-await devuelve una promesa aúnque no se este retornando explicitamente ej: return > Promise.resolve() ; entonces lo que se retorne dentro del catch es como decir Promise.reject()
 
 ✅ **Ventajas:**
 - Se evita el uso de `try-catch` innecesario dentro del llamada de la función compartid por el contexto Global.
@@ -196,10 +196,7 @@ const getUserById = async (id) => {
 
 </details> 
 <details> <summary>Ver Diagrama de ejemplo✅</summary>
-<image src='https://github.com/user-attachments/assets/cd62e5b3-3098-4a24-9b5d-9da2aadc1229' />
-
-
-</details> 
+<image src='https://github.com/user-attachments/assets/8be1b2e5-0369-4e67-b09d-dabf7435c581' />
 
 - 🔹 **Propósito:**:   
 - Este nuevo patrón se encarga de transformar diversas fuentes de error, ya sea que provengan de la respuesta de una API (por ejemplo, `error.response.data.error`, `error.response.data.message` o `error.response.data.detail`), o de casos en los que el error proviene de `error.request`, o incluso errores generados automáticamente durante la configuración de la solicitud.  
