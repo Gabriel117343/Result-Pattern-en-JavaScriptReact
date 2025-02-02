@@ -62,7 +62,7 @@ Un patrón de diseño inspirado en Rust, Go y C# que encapsula el resultado de o
 ### 1.2. Definición, orígenes e inspiración
 Inspirado en lenguajes como **Rust**, **Go** y **C#**, el *Result Pattern* se utiliza para evitar el uso excesivo de `throw` y `try-catch`, promoviendo un manejo explícito de los resultados.
 
->![NOTE]
+> [!NOTE]
 >Nota: Aunque el patrón proviene de otros lenguajes, en JavaScript se adapta para trabajar con promesas y async/await.
 
 
@@ -146,7 +146,7 @@ const getUserById = async (id) => {
 }
 
 ```
->![INFO]
+> [!INFO]
 >Recordar que el retorno de un async-await devuelve una promesa aúnque no se este retornando explicitamente ej: return > Promise.resolve() ; entonces lo que se retorne dentro del catch es como decir Promise.reject()
 
 ✅ **Ventajas:**
@@ -314,7 +314,7 @@ const createUserContext = async (user) => {
 };
 
 ```
-> ![INFO]
+> [!INFO]
 > Esta función combina el patrón de resultados con la integración a React, permitiendo que el componente actúe según el valor retornado sin lanzar excepciones.
 
 ---
@@ -339,7 +339,7 @@ const handleSubmit = async () => {
   }
 };
 ```
->[INFO]
+> [!INFO]
 > En ocaciones una función puede ejecutarse antes de que siquiera el estado global pueda actualizarse, lo que puede llevar problemas, el obtener el id a través del retorno inmediato asegura el id para la ruta.
 ### 4.2 Gestión de Estado Local en Componentes
 Permite actualizar estados locales (como cerrar modales o resetear formularios) basándose en el resultado de la operación:
