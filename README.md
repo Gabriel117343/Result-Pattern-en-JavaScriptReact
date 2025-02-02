@@ -99,6 +99,55 @@ async function fetchUserData(userId) {
 - No hay un contrato claro de respuesta.
 - Posible necesidad de anidar try-catch debido a manejo de diferentes tipos de procesos
 
+<details> <summary>Ver Ejemplo función proccessData✅</summary>
+   
+```javascript
+// Simulamos una función que llama a una API externa para procesar datos.
+async function processDataApi(data) {
+  // Simula una llamada a la API y su respuesta
+  // Por ejemplo, se podría utilizar axios, pero aquí usamos fetch para simplificar.
+  const response = await fetch('https://api.example.com/process', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response; // Se asume que response tiene .status y .json()
+}
+
+async function processData(data) {
+  try {
+    // Llamamos a la API de procesamiento
+    const response = await processDataApi(data);
+    
+    // Procesamos la respuesta de la API
+    if (response.status === 200) {
+      const processedData = await response.json();
+      return {
+        success: true,
+        message: "Datos procesados correctamente",
+        data: processedData
+      };
+    } else {
+      // Si el estado no es 200, consideramos que hubo un error en la API
+      return {
+        success: false,
+        message: `Error en el procesamiento: estado ${response.status}`,
+        status: response.status
+      };
+    }
+  } catch (error) {
+    // Capturamos errores de red o excepciones internas
+    return {
+      success: false,
+      message: error.message || "Error inesperado en el procesamiento de datos",
+      status: error.status || 500
+    };
+  }
+}
+
+```
+</details>
+
 #### 🟢 **Enfoque con Result Pattern** (Async Function)
 ```javascript
 // UserContext.jsx (función reutilizable dentro de un estado global)
@@ -116,13 +165,28 @@ export const UsersProvier = ({ children }) => {
 
    try {
       const res = await getUserApi(userId)
+
+       // o primero podría proccesar la info > Llamamos a la función processData para procesar los datos sin necesidad de anidar aquí un try-catch adicional.
+       // const processedResult = processData(res.data);
+       // if (!processedResult.success) {
+         // Si el procesamiento falla, se retorna el error.
+         // Opcionalmente, se puede utilizar handleApiError para transformar el error, si processedResult.error existe.
+         // return handleApiError(processedResult.error) || processedResult;
+       // }
+        // Si todo es exitoso, se retorna el resultado final con los datos procesados.
+       // return { 
+         // success: true, 
+         // message: 'Usuario procesado correctamente', 
+         // data: processedResult.data 
+        // };
       if (res.status === 200) {
         dispatch({
           type: 'GET_USER',
           payload: res.data
         })
         return { success: true, message: res.data.message }
-      } 
+      }
+      
        return { success: false, message: res.data.message ?? 'Error inesperado' }
     }  catch (error) {
       return { success: false, message: res.data.error ?? 'Error inesperado' } 
@@ -210,6 +274,7 @@ const getUserById = async (id) => {
 - **Robustez durante el desarrollo:** Útil cuando las APIs retornan errores no uniformes, asegurando que siempre se devuelva un `status` junto con el mensaje.
 - **Integración:** Se complementa naturalmente con el Result Pattern al retornar un objeto que incluye `success`, `message` y `status`.
 🔹 **Manejo de errores HTTP y de red:**
+- **Facilitar el manejo de errores en la UI**(ej: modal/toast del `message` de error para el usuario): Los componentes pueden procesar un objeto de error consistente, sin tener que adivinar de qué fuente proviene el problema.
 
 
 <details> <summary>Ver ejemplo✅</summary>
