@@ -194,9 +194,9 @@ const getUserById = async (id) => {
 
 ### 3.1. Capa de Manejo de Errores Centralizado (`handleApiError`)  y el nuevo Standardized Error Pattern
 
-</details> 
 <details> <summary>Ver Diagrama de ejemplo✅</summary>
 <image src='https://github.com/user-attachments/assets/8be1b2e5-0369-4e67-b09d-dabf7435c581' />
+</details> 
 
 - 🔹 **Propósito:**:   
 - Este nuevo patrón se encarga de transformar diversas fuentes de error, ya sea que provengan de la respuesta de una API (por ejemplo, `error.response.data.error`, `error.response.data.message` o `error.response.data.detail`), o de casos en los que el error proviene de `error.request`, o incluso errores generados automáticamente durante la configuración de la solicitud.  
