@@ -447,53 +447,86 @@ const handleCreateUser = async () => {
 import axios from 'axios';
 
 const API_URL = Object.freeze({
-desarrolo: 'http://api-extern',
-produccion: 'http://api.v1...',
-despliege_local: 'http://ngrok..'
-})
-// Axios personalizado para funcionar como un "middleware" en cada solicitud
-// uso en ej: user.api.js - login.api.js
-export const createApiInstance = (path='') => {
-   // path ej: users/ - login/ 
-   const apiInstance = axios.create({
-     baseURL: `${API_URL.desarrollo}`/${path},
-   });
-   // Interceptar antes de enviar para inyectar el token
-   apiClient.interceptors.request.use((config) => {
-     const token = localStorage.getItem('authToken');
-      // demás validaciones..
-     if (token) {
-       config.headers.Authorization = `Bearer ${token}`;
-     }
-     return config;
-   });
-   // respues de algúna Api externa
-   apiClient.interceptors.response.use(
-     (response) => response,
-     async (error) => {
-       if (error.response?.status === 401) {
-         // Renovar token automáticamente
-         const newToken = await refreshToken();
-         localStorage.setItem('authToken', newToken);
-         error.config.headers.Authorization = `Bearer ${newToken}`;
-         return apiClient(error.config); // Reintentar la solicitud
-       }
-       return Promise.reject(error);
-     }
-   );
-}
+  desarrolo: 'http://api-extern',
+  produccion: 'http://api.v1...', // Nota: útilizar una variable de entorno con la url de producción .env para seguridad
+  despliege_local: 'http://ngrok..'
+});
+
+/**
+ * Crea una instancia personalizada de Axios con interceptores.
+ * @param {string} path - El endpoint base para esta instancia (ej: 'users/', 'login/').
+ * @returns {AxiosInstance} - Una instancia de Axios configurada.
+ */
+export const createApiInstance = (path = '') => {
+  // Crear una instancia de Axios con la URL base y el path específico
+  const apiInstance = axios.create({
+    baseURL: `${API_URL.desarrollo}/${path}`, // Path dinámico para cada API
+  });
+
+  // 🔧 Interceptor de solicitud: Inyecta el token de autenticación
+  apiInstance.interceptors.request.use((config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+
+  // 🔧 Interceptor de respuesta: Maneja errores y renovación de tokens
+  apiInstance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status === 401) {
+        // Renovar token automáticamente
+        const newToken = await refreshToken();
+        localStorage.setItem('authToken', newToken);
+        error.config.headers.Authorization = `Bearer ${newToken}`;
+        return apiInstance(error.config); // Reintentar la solicitud
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return apiInstance;
+};
 
 // user.api.js
-import { createApiInstance } from './config/defaultAxiosConfig'
-const userApi = createApiInstance('api/users')
+import { createApiInstance } from './config/defaultAxiosConfig';
 
+/**
+ * Instancia de Axios específica para el módulo de usuarios.
+ * Define el endpoint base ('api/users') para todas las solicitudes relacionadas con usuarios.
+ */
+const userApi = createApiInstance('api/users'); // 👈 Endpoint específico para usuarios
+
+/**
+ * Obtiene un usuario por su ID.
+ * @param {string} userId - ID del usuario a obtener.
+ * @returns {Promise<AxiosResponse>} - Respuesta de la API.
+ */
 export const getUser = async (userId) => {
-  return userApi.get(`/${userId}`)
-}
-// demás funciones
-// Nota: Estas funciones se podrian gestionar en un estado global try-catch con **Result-Pattern** - **Standardized Error Pattern** de mejor manera, dejando asi este archivo con la única reesponsabilidad de definir las Apis a consumir
-// y internamente gestionar los interceptores de respuesta - solicitud
+  return userApi.get(`/${userId}`); // 👈 Endpoint dinámico basado en el ID
+};
+
+// demás funciones...
+
+/**
+ * NOTA:
+ * Este archivo tiene la única responsabilidad de definir los endpoints específicos
+ * para consumir APIs relacionadas con usuarios (ej: 'api/users').
+ * 
+ * - Los interceptores y la lógica de manejo de tokens están centralizados en `createApiInstance`.
+ * - Los endpoints se pasan como parámetros a la configuración de Axios, asegurando que este archivo
+ *   sea puramente declarativo y se enfoque en definir las rutas de la API.
+ * 
+ * Para manejar errores y estados globales, se recomienda importar e integrar estas en un archivo de Contexto global Ej: UserContext.jsx con patrones como:
+ * - **Result Pattern**: Encapsula resultados (éxito o error) en objetos estándar.
+ * - **Standardized Error Pattern**: Centraliza el manejo de errores con mensajes claros y códigos de estado.
+ * 
+ * Esto permite que este archivo sea modular, reutilizable y fácil de mantener.
+ */
 ```
+**💡 Tip:**  ***Un `endpoint` es un punto de acceso específico en una API al que se envían solicitudes para realizar operaciones (como obtener, crear, actualizar o eliminar datos). Por ejemplo: /api/users es un endpoint para gestionar usuarios.***
 </details>
 <details>
 <summary>Ver: Sin este enfoque 🔴</summary>
