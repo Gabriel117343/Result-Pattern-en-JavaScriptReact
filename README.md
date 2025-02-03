@@ -495,7 +495,78 @@ export const getUser = async (userId) => {
 // y internamente gestionar los interceptores de respuesta - solicitud
 ```
 </details>
+<details>
+<summary>Ver: Sin este enfoque 🔴</summary>
+   
+```jsx
+// UserContext.jsx
+import axios from 'axios';
 
+export const UsersContext = createContext(null);
+
+export const UsersProvider = ({ children }) => {
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // 🔴 Problema: Esta función tiene múltiples responsabilidades. 🤯
+  // - Maneja el estado global (users, error, loading).
+  // - Realiza la llamada a la API.
+  // - Procesa los datos.
+  // - Maneja errores directamente aquí.
+  const fetchUserData = async (userId) => {
+    setLoading(true); // 😕 Estado de carga mezclado con lógica de negocio.
+    try {
+      const response = await axios.get(`/api/users/${userId}`);
+      if (!response.data) {
+        throw new Error("Datos inválidos"); // ❌ Lanzamiento de excepciones innecesario.
+      }
+
+      // 😵 Procesamiento de datos dentro de la misma función.
+      const processedData = processData(response.data);
+
+      // Actualización del estado global directamente aquí.
+      setUsers((prevUsers) => [...prevUsers, processedData]);
+      setError(null);
+    } catch (err) {
+      // ❌ Manejo de errores dentro del mismo bloque.
+      console.error("Error al obtener usuario:", err.message);
+      setError(err.message || "Error desconocido"); Mensajes de error inconsistentes.
+    } finally {
+      setLoading(false); // 😕 Estado de carga mezclado con lógica de negocio.
+    }
+  };
+
+  // Función adicional para procesar datos, pero está acoplada a la lógica principal.
+  const processData = (data) => {
+    if (!data.name || !data.email) {
+      throw new Error("Datos incompletos"); // ❌ Más lanzamiento de excepciones.
+    }
+    return { id: data.id, name: data.name.toUpperCase(), email: data.email };
+  };
+
+  return (
+    <UsersContext.Provider value={{ users, error, loading, fetchUserData }}>
+      {children}
+    </UsersContext.Provider>
+  );
+};
+```
+### Problemas identificados :
+- 1 **Múltiples responsabilidades** :
+La función fetchUserData maneja el estado global (users, error, loading), realiza la llamada a la API, procesa los datos y maneja errores. Esto viola el principio de separación de responsabilidades . 🤯
+- 2 **Manejo de errores inconsistente** :
+Los errores se manejan directamente con try-catch, lo que puede llevar a mensajes de error inconsistentes y falta de claridad sobre qué hacer en cada caso. ❌
+- 3 **Acoplamiento de lógica** :
+La función processData está acoplada a fetchUserData, lo que dificulta reutilizarla en otros contextos. 
+- 4 **Estado global sobrecargado** :
+El estado global (users, error, loading) se actualiza directamente dentro de la función, lo que puede causar problemas de mantenibilidad y rendimiento si el estado crece. 
+- 5 **Falta de contrato claro** :
+No hay un formato estándar para los resultados (éxito o error), lo que dificulta su consumo en componentes. ❓
+- 6 **Difícil de probar** :
+Debido a la mezcla de lógica de negocio, manejo de errores y estado global, es más complicado escribir pruebas unitarias o de integración para esta función. 🛠️
+<details/>
+   
 ### 6.3 Testing
 - **Mocking**: Simular respuestas con success: true y success: false para probar la lógica de los componentes.
 - **Pruebas de errores**: Verificar que los mensajes y la lógica de manejo de errores sean correctos.
