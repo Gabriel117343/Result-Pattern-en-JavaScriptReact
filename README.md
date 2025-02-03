@@ -227,8 +227,52 @@ const getUserById = async (id) => {
 - 🔹 **Asincronía:** Se integra de forma natural con `async/await`.
 - 🔹 **Gestión de estados:** Es ideal para contextos que usan `useReducer` en React, centralizando el manejo de datos y errores.
 - 🔹 **Legibilidad:** Mejora la claridad del código al separar la lógica de manejo de errores de la lógica de negocio.
-
 ---
+<details><summary><strong>Patrón de Diseño: Promise con Resolve/React</strong></summary>
+
+El patrón de diseño basado en Promesas con `resolve`/`reject`es un enfoque tradicional en JavaScript para manejar operaciones asíncronas. Este patrón utiliza el objeto **Promise** para representar un valor que puede estar disponible ahora, en el futuro o nunca. Las funciones que implementan este patrón resuelven (`resolve`) cuando la operación tiene éxito o rechazan (`reject`) cuando ocurre un error.
+
+### Ventajas
+- 1 **Familiaridad**: Es ampliamente utilizado en JavaScript, por lo que muchos desarrolladores están familiarizados con él.
+- 2 **Separación clara entre éxito y error**: **resolve** indica éxito, mientras que **reject** indica un error. Esto facilita el manejo diferenciado de ambos casos.
+- 3 **Compatibilidad con `async`/`await`**: Las promesas son compatibles con async/await, lo que simplifica su uso en funciones asíncronas.
+---
+### Desventajas
+- 1 **Dependencia de Excepciones**: Requiere el uso de `try-catch` o .then / .catch() (cuando se consumen) para manejar errores, lo que puede llevar a código más complejo y menos predecible.
+- 2 **Falta de consistencia**: No hay un contrato estándar para los resultados. Cada función puede devolver diferentes estructuras, lo que dificulta la integración.
+- 3 **Anidamiento innecesario**: En aplicaciones grandes, especialmente en React, el uso de multiple de try-catch puede llevar a múltiples niveles de anidamiento.
+
+### Ejemplo de código
+   
+```javascript 
+function buscarEnBaseDeDatos(id) {
+  return new Promise((resolve, reject) => {
+    try {
+      const resultado = BaseDatos.buscar(id);
+      if (resultado !== null) {
+        resolve(resultado); // resolver Éxito
+      } else {
+        resolve(0); // Indica que no se encontró el registro
+      }
+    } catch (error) {
+      reject("Error al acceder a la base de datos"); // Error
+    }
+  });
+}
+// Consumo con Promesas
+buscarEnBaseDeDatos(123)
+  .then((resultado) => {
+    if (resultado === 0) {
+      console.log("No se encontró el registro");
+    } else {
+      console.log("Registro encontrado:", resultado);
+    }
+  })
+  .catch((error) => {
+    console.error("Error:", error);
+  });
+```
+</details>
 
 ## 2. Estructura del Result Pattern en el Proyecto
 
