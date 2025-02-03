@@ -68,7 +68,6 @@ Inspirado en lenguajes como **Rust**, **Go** y **C#**, el *Result Pattern* se ut
 > [!NOTE]
 >Nota: Aunque el patrón proviene de otros lenguajes, en JavaScript se adapta para trabajar con promesas y async/await.
 
-
 ### 1.3. Objetivo principal
 Proveer un mecanismo para retornar el resultado de una operación (**éxito o error**) en un objeto estándar, permitiendo que el consumidor de la función decida cómo manejar cada caso, sin depender de excepciones.
 
@@ -213,8 +212,11 @@ const getUserById = async (id) => {
 }
 
 ```
-> [!INFO]
-> Recordar que el retorno de un async-await devuelve una promesa aúnque no se este retornando explicitamente ej: return > Promise.resolve() ; entonces lo que se retorne dentro del catch es como decir Promise.reject()
+
+> [!NOTE]
+> Las funciones async siempre devuelven una promesa, incluso si no se especifica explícitamente. 
+> Retornar un valor dentro de un try o catch equivale a resolver la promesa (Promise.resolve()).
+> Lanzar un error (throw) dentro de un catch equivale a rechazar la promesa (Promise.reject()).
 
 ✅ **Ventajas:**
 - Se evita el uso de `try-catch` innecesario dentro del llamada de la función compartid por el contexto Global.
@@ -423,7 +425,7 @@ const createUserContext = async (user) => {
 };
 
 ```
-> [!INFO]
+> [!SUCCESS]
 > Esta función combina el patrón de resultados con la integración a React, permitiendo que el componente actúe según el valor retornado sin lanzar excepciones.
 
 ---
@@ -448,8 +450,9 @@ const handleSubmit = async () => {
   }
 };
 ```
-> [!INFO]
+> [!DANGER]
 > En ocaciones una función puede ejecutarse antes de que siquiera el estado global pueda actualizarse, lo que puede llevar problemas, el obtener el id a través del retorno inmediato asegura el id para la ruta.
+
 ### 4.2 Gestión de Estado Local en Componentes
 Permite actualizar estados locales (como cerrar modales o resetear formularios) basándose en el resultado de la operación:
 ```jsx
@@ -477,7 +480,8 @@ const handleCreateUser = async () => {
 ### 6.1 Estructura de Objetos
 - **Consistencia**: Asegúrate de que todas las funciones retornen un objeto con el mismo formato (success, message, data, etc.). Esto garantiza que los consumidores del patrón no tengan que lidiar con respuestas inconsistentes.
 - **Extensibilidad**: Permitir la adición de campos personalizados sin romper el contrato. . Por ejemplo, puedes incluir campos como `userId` o `status` según sea necesario.
-> [!INFO]
+
+> [!WARNING]
 > Mantener una estructura consistente es crucial para evitar errores en la integración entre componentes y servicios.
 
 ### 6.2 Seguridad
@@ -570,7 +574,10 @@ export const getUser = async (userId) => {
  * Esto permite que este archivo sea modular, reutilizable y fácil de mantener.
  */
 ```
-**💡 Tip:**  ***Un `endpoint` es un punto de acceso específico en una API al que se envían solicitudes para realizar operaciones (como obtener, crear, actualizar o eliminar datos). Por ejemplo: /api/users es un endpoint para gestionar usuarios.***
+
+> [!TIP]
+> 💡Un `endpoint` es un punto de acceso específico en una API al que se envían solicitudes para realizar operaciones (como obtener, crear, actualizar o eliminar datos). Por ejemplo: /api/users es un endpoint para gestionar usuarios.***
+
 </details>
 <details>
 <summary>Ver: Sin este enfoque 🔴</summary>
@@ -592,14 +599,14 @@ export const UsersProvider = ({ children }) => {
   // - Procesa los datos.
   // - Maneja errores directamente aquí.
   const fetchUserData = async (userId) => {
-    setLoading(true); // 😕 Estado de carga mezclado con lógica de negocio.
+    setLoading(true); // Estado de carga mezclado con lógica de negocio.
     try {
       const response = await axios.get(`/api/users/${userId}`);
       if (!response.data) {
         throw new Error("Datos inválidos"); // ❌ Lanzamiento de excepciones innecesario.
       }
 
-      // 😵 Procesamiento de datos dentro de la misma función.
+      // Procesamiento de datos dentro de la misma función.
       const processedData = processData(response.data);
 
       // Actualización del estado global directamente aquí.
@@ -610,7 +617,7 @@ export const UsersProvider = ({ children }) => {
       console.error("Error al obtener usuario:", err.message);
       setError(err.message || "Error desconocido"); Mensajes de error inconsistentes.
     } finally {
-      setLoading(false); // 😕 Estado de carga mezclado con lógica de negocio.
+      setLoading(false); // Estado de carga mezclado con lógica de negocio.
     }
   };
 
@@ -690,7 +697,7 @@ describe('getUserContext', () => {
 El uso de métodos avanzados de promesas como **Promise.allSettled()** y **Promise.any()** puede mejorar significativamente la robustez de tu código al manejar múltiples operaciones asíncronas.
 
 ---
-### 6.5. Documentación de Campos Personalizados
+### 6.5. Documentación de Campos Personalizados 🛠️
 - Mantener un registro de los campos retornados por cada función del contexto para evitar inconsistencias y sobrecarga de datos.
 ---
 ## 7. Casos de Uso Avanzados
@@ -823,6 +830,8 @@ const executeTransaction = async (operations) => {
 **Referencia Adicional:**  
 
 [Goodbye Exceptions: Mastering Error Handling in JavaScript with the Result Pattern](https://dev.to/gautam_kumar_d3daad738680/goodbye-exceptions-mastering-error-handling-in-javascript-with-the-result-pattern-26kb#:~:text=The%20Result%20Pattern%20is%20a,explicitly%20indicates%20success%20or%20failure.)
+
+[Lemon Code🍋 - JavaScript Asíncronico La Guía definitiva](https://lemoncode.net/lemoncode-blog/2018/1/29/javascript-asincrono)
 
 ---
 
