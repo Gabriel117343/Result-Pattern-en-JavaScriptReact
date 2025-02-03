@@ -39,11 +39,14 @@
    - 6.3. Testing y simulación de resultados
    - 6.4. Diseño de respuestas de la API y contratos claros
    - 6.5. Documentación de campos personalizados
-
-7. **Conclusión**
+7. Casos de Uso Avanzados
+   - 7.1 Manejo de Errores en Flujos Asíncronos Concurrentes
+   - 7.2 Uso del Patrón en Microservicios
+   - 7.3 Manejo de Errores en Operaciones Transaccionales
+8. **Conclusión**
    - 7.1. Resumen de ventajas
    - 7.2. Adaptabilidad y escalabilidad del patrón
-
+   
 ---
 
 ## 1. Introducción al Result Pattern
@@ -428,20 +431,237 @@ const handleCreateUser = async () => {
 ---
 ## 6 Consideraciones y Buenas Prácticas
 ### 6.1 Estructura de Objetos
-- **Consistencia**: Asegurarse de que todas las funciones retornen un objeto con el mismo formato.
-- **Extensibilidad**: Permitir la adición de campos personalizados sin romper el contrato.
+- **Consistencia**: Asegúrate de que todas las funciones retornen un objeto con el mismo formato (success, message, data, etc.). Esto garantiza que los consumidores del patrón no tengan que lidiar con respuestas inconsistentes.
+- **Extensibilidad**: Permitir la adición de campos personalizados sin romper el contrato. . Por ejemplo, puedes incluir campos como `userId` o `status` según sea necesario.
+> [!INFO]
+> Mantener una estructura consistente es crucial para evitar errores en la integración entre componentes y servicios.
+
 ### 6.2 Seguridad
-- **Tokens y autenticación**: Utilizar interceptores en Axios para la renovación automática de tokens.
-- **Protección de datos**: No registrar campos sensibles como contraseñas.
+- **Tokens y autenticación**: Utilizar interceptores en Axios para la renovación automática de tokens. Esto asegura que las solicitudes siempre estén autenticadas.
+- **Protección de datos**: Evita registrar campos sensibles como contraseñas o información personal en los mensajes de error.
+
+<details> <summary>Ver Ejemplo de Interceptores con Axios✅</summary>
+
+```javascript
+// axios.interceptor.js
+import axios from 'axios';
+
+const API_URL = Object.freeze({
+desarrolo: 'http://api-extern',
+produccion: 'http://api.v1...',
+despliege_local: 'http://ngrok..'
+})
+// Axios personalizado para funcionar como un "middleware" en cada solicitud
+// uso en ej: user.api.js - login.api.js
+export const createApiInstance = (path='') => {
+   // path ej: users/ - login/ 
+   const apiInstance = axios.create({
+     baseURL: `${API_URL.desarrollo}`/${path},
+   });
+   // Interceptar antes de enviar para inyectar el token
+   apiClient.interceptors.request.use((config) => {
+     const token = localStorage.getItem('authToken');
+      // demás validaciones..
+     if (token) {
+       config.headers.Authorization = `Bearer ${token}`;
+     }
+     return config;
+   });
+   // respues de algúna Api externa
+   apiClient.interceptors.response.use(
+     (response) => response,
+     async (error) => {
+       if (error.response?.status === 401) {
+         // Renovar token automáticamente
+         const newToken = await refreshToken();
+         localStorage.setItem('authToken', newToken);
+         error.config.headers.Authorization = `Bearer ${newToken}`;
+         return apiClient(error.config); // Reintentar la solicitud
+       }
+       return Promise.reject(error);
+     }
+   );
+}
+
+// user.api.js
+import { createApiInstance } from './config/defaultAxiosConfig'
+const userApi = createApiInstance('api/users')
+
+export const getUser = async (userId) => {
+  return userApi.get(`/${userId}`)
+}
+// demás funciones
+// Nota: Estas funciones se podrian gestionar en un estado global try-catch con **Result-Pattern** - **Standardized Error Pattern** de mejor manera, dejando asi este archivo con la única reesponsabilidad de definir las Apis a consumir
+// y internamente gestionar los interceptores de respuesta - solicitud
+```
+</details>
+
 ### 6.3 Testing
 - **Mocking**: Simular respuestas con success: true y success: false para probar la lógica de los componentes.
 - **Pruebas de errores**: Verificar que los mensajes y la lógica de manejo de errores sean correctos.
+#### 6.3.1 Testing con Vitest
+`Vitest` es una herramienta de testing moderna y rápida, compatible con `Vite`. Es ideal para proyectos que utilizan frameworks como **React**, **Vue** o **Svelte**.
+A continuación, se muestran ejemplos de cómo probar funciones que usan el Result Pattern con Vitest.
+<details> <summary>Ver Ejemplo de Testing con Vitest✅</summary>
+
+```javascript
+// users.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { getUserContext } from './UserContext';
+import { getUserApi } from '@api/users.api';
+
+vi.mock('@api/users.api', () => ({
+  getUserApi: vi.fn(),
+}));
+
+describe('getUserContext', () => {
+  it('should return success result for valid user', async () => {
+    getUserApi.mockResolvedValue({ status: 200, data: { id: 'validId', name: 'John Doe' } });
+    const result = await getUserContext('validId');
+    expect(result).toEqual({
+      success: true,
+      message: 'Usuario obtenido correctamente',
+      data: { id: 'validId', name: 'John Doe' },
+    });
+  });
+
+  it('should return error result for invalid user', async () => {
+    getUserApi.mockRejectedValue({ response: { status: 404, data: { message: 'User not found' } } });
+    const result = await getUserContext('invalidId');
+    expect(result).toEqual({
+      success: false,
+      message: 'User not found',
+      status: 404,
+    });
+  });
+});
+```
+</details>
+
+### 6.3.2 Nuevas Características de Promesas
+El uso de métodos avanzados de promesas como **Promise.allSettled()** y **Promise.any()** puede mejorar significativamente la robustez de tu código al manejar múltiples operaciones asíncronas.
+
 ---
 ### 6.5. Documentación de Campos Personalizados
 - Mantener un registro de los campos retornados por cada función del contexto para evitar inconsistencias y sobrecarga de datos.
 ---
+## 7. Casos de Uso Avanzados
+### 7.1 Manejo de Errores en Flujos Asíncronos Concurrentes
+En aplicaciones modernas, es común tener flujos asíncronos concurrentes (por ejemplo, cargar datos desde varias APIs al mismo tiempo). El **Result Pattern** puede extenderse para manejar estos casos de manera eficiente.
 
-## 7. Conclusión
+</details><summary>Ver Ejemplo: Combinación de Resultados Concurrentes</summary>
+
+```javascript
+// utils.js
+export const combineResults = (results) => {
+  const hasError = results.some((result) => !result.success);
+  if (hasError) {
+    return {
+      success: false,
+      message: "Uno o más procesos fallaron",
+      errors: results.filter((result) => !result.success),
+    };
+  }
+  return {
+    success: true,
+    message: "Todos los procesos completados con éxito",
+    data: results.map((result) => result.data),
+  };
+};
+
+// App.jsx
+const fetchData = async () => {
+  const [userResult, orderResult] = await Promise.all([
+    getUserContext("validId"),
+    getOrderContext("orderId"),
+  ]);
+
+  const combinedResult = combineResults([userResult, orderResult]);
+  if (!combinedResult.success) {
+    console.error(combinedResult.errors);
+  } else {
+    console.log(combinedResult.data);
+  }
+};
+```
+Explicación:
+**Combinación de resultados** : La función combineResults agrupa los resultados de múltiples llamadas y determina si hubo algún error.
+**Manejo centralizado** : Si hay errores, se devuelve un objeto con detalles sobre qué procesos fallaron.
+
+</details>
+
+### 7.2 Uso del Patrón en Microservicios
+En arquitecturas de microservicios, el **Result Pattern** puede ser útil para estandarizar las respuestas entre servicios y facilitar el manejo de errores distribuidos.
+
+<details/><summary>Ver Ejemplo: Gateway de API</summary>
+
+```javascript
+// api-gateway.js
+export const callService = async (serviceUrl, payload) => {
+  try {
+    const response = await fetch(serviceUrl, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Service error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, message: "Success", data };
+  } catch (error) {
+    return handleApiError(error); // Centraliza el manejo de errores
+  }
+};
+
+// Usage in a gateway
+const processRequest = async (request) => {
+  const userServiceResult = await callService("http://user-service", request.user);
+  const orderServiceResult = await callService("http://order-service", request.order);
+
+  const combinedResult = combineResults([userServiceResult, orderServiceResult]);
+  return combinedResult;
+};
+```
+- **Explicación:**
+- **Estandarización** : Cada servicio retorna un objeto siguiendo el **Result Pattern** , lo que facilita la integración.
+- **Centralización** : El manejo de errores se realiza en un solo lugar (`handleApiError`), reduciendo la duplicación de código.
+</details>
+
+### 7.3 Manejo de Errores en Operaciones Transaccionales
+En sistemas donde las operaciones deben ser atómicas (todas las operaciones tienen éxito o ninguna), el **Result Pattern** puede combinarse con patrones como **Saga** para revertir cambios en caso de errores.
+<details><summary>Ver Ejemplo: Transacciones con Rollback</summary>
+   
+```javascript
+const executeTransaction = async (operations) => {
+  const results = [];
+  try {
+    for (const operation of operations) {
+      const result = await operation();
+      if (!result.success) {
+        throw new Error("Transaction failed");
+      }
+      results.push(result);
+    }
+    return { success: true, message: "Transaction completed", data: results };
+  } catch (error) {
+    // Rollback logic
+    for (const result of results) {
+      if (result.rollback) {
+        await result.rollback();
+      }
+    }
+    return { success: false, message: error.message };
+  }
+};
+```
+- **Explicación:**
+- **Atomicidad** : Si alguna operación falla, se revierten todas las operaciones previas.
+- **Flexibilidad** : Cada operación puede incluir lógica de rollback personalizada.
+</details>
+
+## 8. Conclusión
 
 🔹 **Resumen de ventajas:**
 - 🔄 **Evita `try-catch` innecesarios**.
