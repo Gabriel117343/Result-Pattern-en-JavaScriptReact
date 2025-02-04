@@ -317,23 +317,34 @@ buscarEnBaseDeDatos(123)
 -  Este enfoque complementa al Result Pattern agregando el `message` obtenido mediante extractores/limpiadores de errores y siempre incluye un `status` asociado. El retorno siempre seguirá un formato similar a:  
   `return { success: false, message: extractedMessage, status: statusValue }`.
 
-🔹 **Ventajas del Standardized Error Pattern:**
+#### 🔹 **Ventajas del Standardized Error Pattern:**
 - **Consistencia:** Garantiza que todos los errores tengan un formato unificado.
 - **Claridad:** Proporciona mensajes claros extraídos de diversas propiedades (como `error`, `message`, o `detail`).
 - **Robustez durante el desarrollo:** Útil cuando las APIs retornan errores no uniformes, asegurando que siempre se devuelva un `status` junto con el mensaje.
 - **Integración:** Se complementa naturalmente con el Result Pattern al retornar un objeto que incluye `success`, `message` y `status`.
-🔹 **Manejo de errores HTTP y de red:**
-- **Facilitar el manejo de errores en la UI**(ej: modal/toast del `message` de error para el usuario): Los componentes pueden procesar un objeto de error consistente, sin tener que adivinar de qué fuente proviene el problema.
 
+#### 🔹 **Ventajas Clave del Standardized Error Pattern**
+- **Depuración avanzada para desarrolladores**:
+   - Al registrar el error completo en la consola (por ejemplo, usando `console.error`), se proporciona un contexto detallado para la depuración, sin afectar la experiencia del usuario final.
+   - Esto es especialmente útil cuando las **APIs** devuelven errores complejos o anidados, ya que los desarrolladores pueden inspeccionar toda la estructura del error.
+- **Mensajes limpios para los usuarios :**
+   - Mientras tanto, el retorno del error sigue siendo limpio y estructurado (success, message, status), lo que permite mostrar mensajes claros y útiles en la interfaz (como toasts, modales o notificaciones).
+   - Esto garantiza que los usuarios reciban información relevante sin exponer detalles técnicos que puedan confundirlos.
 
-<details> <summary>Ver ejemplo✅</summary>
+<details> <summary>Ver ejemplo de funcionamiento ✅</summary>
 
 ```javascript
 function handleApiError(error) {
   // respues de servidor
   if (error.response) {
-  console.error({ ERROR_RESPONSE: error.response})
-  const { status, data } = error.response
+  const { status, data, headers } = error.response
+    // Registro detallado del error para depuración para el desarrollador
+  if (error.response) {
+    console.error("❌ ERROR_RESPONSE:", { 
+      status: status,
+      data: data,
+      headers: headers 
+    });
   // Función helper para formatear mensajes de error
     const formatErrorMessage = (message) => {
       return typeof message === 'string'
@@ -377,6 +388,7 @@ function handleApiError(error) {
         `Error inesperado (${status}). Por favor, intenta nuevamente.`, status }
     if (error.request)  {
     // Error de red o solicitud no completada
+      console.error("❌ SIN RESPUESTA DEL SERVIDOR:", error.request);
     }
     if (error.config) // Error en la configuración de la solicitud
   }
@@ -399,7 +411,11 @@ export const updateUserContext = async (id, usuario) => {
       return { success: true, message: res.data.message };
     }
   } catch (error) {
-    return handleApiError(error); // Uso centralizado del patrón de error
+      // uso dentralizado del patrón de error
+     return {
+    ...handleApiError(error), // success: false, message: 'mensaje limpio', status: 400
+    witOutErrorPattern: error.response.data.message ?? 'Error desconocido' // el error puede no estár en el .message❌ 
+    }
   }
 };
 ```
@@ -416,16 +432,16 @@ const createUserContext = async (user) => {
     const res = await createUser(user);
     if (res.status === 200 || res.status === 201) {
       dispatch({ type: 'CREATE_USER', payload: res.data });
-      return { success: true, message: res.data.message, userId: res.data.id };
+      return { success: true, message: res.data.message, userId: res.data.id }; // opcionalmente podemos incluir más información en este respuesta como el idUser
     }
-    return { success: false, message: res.data.error || 'Error inesperado' };
+    return { success: false, message: res.data.error ?? 'Error inesperado' };
   } catch (error) {
-    return {...handleApiError(error), idUser: res.data.id } // opcionalmente podemos incluir más información en este respuesta como el idUser
+    return handleApiError(error)
   }
 };
 
 ```
-> [!SUCCESS]
+> [!TIP]
 > Esta función combina el patrón de resultados con la integración a React, permitiendo que el componente actúe según el valor retornado sin lanzar excepciones.
 
 ---
